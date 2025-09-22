@@ -44,9 +44,19 @@ def menu():
     else:
         print("Invalid Input")
 def me():
+    print()
     print("Go back to menu (1): ")
     print("Exit (0): ")
-
+    print()
+    inp = int(input("Enter your choice: "))
+    print()
+    if inp == 1:
+        return menu()
+    elif inp == 0:
+        print("Exiting...")
+        exit()
+    else:
+        print("Invalid Input")
 
 def ReportItem():
     print("Report Item")
@@ -60,7 +70,7 @@ def ReportItem():
         ReportLostItem(logged_in_user_id)
     elif inp == 2:
         print("Reporting Found Item")
-        ReportFoundItem()
+        ReportFoundItem(logged_in_user_id)
     elif inp == 0:
         return menu()
     else:
@@ -163,7 +173,6 @@ def ReportLostItem(logged_in_user_id):
         print(f"Category: {category}")
         if item_image_url:
             print(f"Image URL: {item_image_url}")
-        menu()
 
     except Exception as e:
         db_connection.rollback()
@@ -173,6 +182,7 @@ def ReportLostItem(logged_in_user_id):
 
     finally:
         cursor.close()
+        me()
 
 def ReportFoundItem(logged_in_user_id):
     db_connection = get_connection()
@@ -224,6 +234,7 @@ def ReportFoundItem(logged_in_user_id):
 
     finally:
         cursor.close()
+        me()
 
 def ViewLeaderboard():
     db_connection = get_connection()
@@ -247,6 +258,7 @@ def ViewLeaderboard():
 
     finally:
         cursor.close()
+        me()
 
 def logout():
     print("🔒 Logging out...")
@@ -271,18 +283,20 @@ def BrowseLostItems():
 
         if not lost_items:
             print("\n📭 No lost items reported yet.")
-            return
+            return me()
 
         print("\n📌 Lost Items Reported:")
         print()
         for item in lost_items:
             print(f"ID: {item['item_id']} | Name: {item['item_name']}\nDesc: {item['item_description']}\nCategory: {item['category']}")
             print()
+        me()
 
     except Exception as e:
         print("\n❌ Failed to retrieve lost items.")
         print(f"Error: {e}")
         print()
+        me()
 
     finally:
         cursor.close()
