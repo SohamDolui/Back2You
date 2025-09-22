@@ -30,7 +30,10 @@ def get_connection():
         'created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, ' \
         'category VARCHAR(50), ' \
         'bounty_points INT DEFAULT(10), status ENUM("lost", "found but not claimed", "found and claimed"), ' \
-        'item_image_url VARCHAR(255), ' \
+        'item_image_url VARCHAR(2000), ' \
+        'found_description TEXT, ' \
+        'found_by INT, ' \
+        'found_image_url VARCHAR(2000), ' \
         'FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE);')
 
         cursor.execute('CREATE TABLE IF NOT EXISTS '
@@ -53,3 +56,4 @@ def get_connection():
         conn.commit()
         cursor.close()
         return conn
+get_connection()

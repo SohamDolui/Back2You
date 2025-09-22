@@ -9,12 +9,13 @@ def menu():
     print("Welcome to BACK2YOU")
     print()
     print("Home Menu")
-    print("Report Item (1):")
-    print("Browse/Search Items (2):")
-    print("Messages (3):")
-    print("Global Chat (4):")
-    print("My Profile (5):")
-    print("Logout (6):")
+    print("Report Item (1): Report a lost or found item")
+    print("Browse/Search Items (2): Browse or search for lost and found items")
+    print("Messages (3): View and manage your messages")
+    print("Global Chat (4): Join the global chat room")
+    print("My Profile (5): View and edit your profile")
+    print("Leaderboard (6): See your heroes who help people find their lost items!")
+    print("Logout (7):")
     print("Exit (0):")
     print()
     inp = int(input("Enter your choice: "))
@@ -31,6 +32,9 @@ def menu():
     elif inp == 5:
         Profile()
     elif inp == 6:
+        print("Viewing Leaderboard")
+        ViewLeaderboard()
+    elif inp == 7:
         print("Logging out...")
         logout()
     elif inp == 0:
@@ -41,9 +45,9 @@ def menu():
 
 def ReportItem():
     print("Report Item")
-    print("Report Lost Item (1):")
-    print("Report Found Item (2):")
-    print("Back to Home Menu (0):")
+    print("Report Lost Item (1): Lost an item? Let others know!")
+    print("Report Found Item (2): Found an item? Become a hero by helping others claim it!")
+    print("Go back to Home Menu (0):")
     print()
     inp = int(input("Enter your choice: "))
     if inp == 1:
@@ -59,9 +63,9 @@ def ReportItem():
 
 def BrowseItems():
     print("Browse/Search Items")
-    print("Browse Lost Items (1):")
-    print("Browse Found Items (2):")
-    print("Search Items (3):")
+    print("Browse Lost Items (1): Browse lost items reported by users and be their hero!")
+    print("Browse Found Items (2): Browse to claim any found item reported by users")
+    print("Search Items (3): Search for specific items")
     print("Back to Home Menu (0):")
     print()
     inp = int(input("Enter your choice: "))
@@ -132,16 +136,19 @@ def ReportLostItem(logged_in_user_id):
     item_name = input("Enter the name of the lost item: ")
     item_description = input("Enter a description of the lost item: ")
     category = input("Enter category of the item: ")
+    bounty = int(input("Enter the price of the item (This will not be displayed to others and will be only used for calculation of points): "))//10
     item_image_url = input("Enter an image URL (or leave blank): ")
 
     db_connection = get_connection()
     cursor = db_connection.cursor()
+    cursor.execute("SELECT COUNT(*) FROM Items")
+    item_id = cursor.fetchone()[0] + 1
 
     try:
         cursor.execute("""
-            INSERT INTO Items (item_name, item_description, user_id, category, status, item_image_url)
-            VALUES (%s, %s, %s, %s, %s, %s)
-        """, (item_name, item_description, logged_in_user_id, category, "lost", item_image_url))
+            INSERT INTO Items (item_id, item_name, item_description, user_id, category, bounty_points, status, item_image_url)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """, (item_id, item_name, item_description, logged_in_user_id, category, bounty, "lost", item_image_url))
 
         db_connection.commit()
 
@@ -175,7 +182,7 @@ def ReportFoundItem(logged_in_user_id):
 
         print("\n📌 Lost Items Reported:")
         for item in lost_items:
-            print(f"ID: {item['item_id']} | Name: {item['item_name']} | Desc: {item['item_description']}")
+            print(f"ID: {item['item_id']} | Name: {item['item_name']}\nDesc: {item['item_description']}")
 
         # Step 2: Ask which lost item was found
         chosen_id = int(input("\nEnter the ID of the item you found: "))
@@ -192,9 +199,9 @@ def ReportFoundItem(logged_in_user_id):
 
         cursor.execute("""
             INSERT INTO Items (item_name, item_description, user_id, category, status, item_image_url)
-            SELECT item_name, %s, %s, %s, %s, %s 
+            SELECT item_name, %s, %s, %s, %s, %s, %s 
             FROM Items WHERE item_id = %s
-        """, (item_description, logged_in_user_id, category, "found", item_image_url, chosen_id))
+        """, (item_description, logged_in_user_id, category,"found", item_image_url, chosen_id))
 
         # Step 4: Update status of lost item → "found"
         cursor.execute("UPDATE Items SET status = 'found' WHERE item_id = %s", (chosen_id,))
@@ -206,6 +213,29 @@ def ReportFoundItem(logged_in_user_id):
     except Exception as e:
         db_connection.rollback()
         print("\n❌ Failed to register found item.")
+        print(f"Error: {e}")
+
+    finally:
+        cursor.close()
+
+def ViewLeaderboard():
+    db_connection = get_connection()
+    cursor = db_connection.cursor(dictionary=True)
+
+    try:
+        cursor.execute("SELECT username, points FROM Users ORDER BY points DESC LIMIT 10")
+        leaders = cursor.fetchall()
+
+        if not leaders:
+            print("\n📭 No users found.")
+            return
+
+        print("\n🏆 Leaderboard - Top 10 Users by Points:")
+        for idx, user in enumerate(leaders, start=1):
+            print(f"{idx}. {user['username']} - {user['points']} points")
+
+    except Exception as e:
+        print("\n❌ Failed to retrieve leaderboard.")
         print(f"Error: {e}")
 
     finally:
@@ -224,4 +254,78 @@ def logout():
 
     sys.exit(0)  # Kill current session
 
+def BrowseLostItems():
+    db_connection = get_connection()
+    cursor = db_connection.cursor(dictionary=True)
+
+    try:
+        cursor.execute("SELECT item_id, item_name, item_description, category FROM Items WHERE status = 'lost'")
+        lost_items = cursor.fetchall()
+
+        if not lost_items:
+            print("\n📭 No lost items reported yet.")
+            return
+
+        print("\n📌 Lost Items Reported:")
+        for item in lost_items:
+            print(f"ID: {item['item_id']} | Name: {item['item_name']}\nDesc: {item['item_description']}\nCategory: {item['category']}")
+
+    except Exception as e:
+        print("\n❌ Failed to retrieve lost items.")
+        print(f"Error: {e}")
+
+    finally:
+        cursor.close()
+
+def BrowseFoundItems():
+    db_connection = get_connection()
+    cursor = db_connection.cursor(dictionary=True)
+
+    try:
+        cursor.execute("SELECT item_id, item_name, item_description, category FROM Items WHERE status = 'found'")
+        found_items = cursor.fetchall()
+
+        if not found_items:
+            print("\n📭 No found items reported yet.")
+            return
+
+        print("\n📌 Found Items Reported:")
+        for item in found_items:
+            print(f"ID: {item['item_id']} | Name: {item['item_name']}\nDesc: {item['item_description']}\nCategory: {item['category']}")
+
+    except Exception as e:
+        print("\n❌ Failed to retrieve found items.")
+        print(f"Error: {e}")
+
+    finally:
+        cursor.close()
+
+def SearchItems():
+    search_term = input("Enter item name or keyword to search: ")
+    db_connection = get_connection()
+    cursor = db_connection.cursor(dictionary=True)
+
+    try:
+        cursor.execute("""
+            SELECT item_id, item_name, item_description, category, status 
+            FROM Items 
+            WHERE item_name LIKE %s OR item_description LIKE %s
+        """, (f"%{search_term}%", f"%{search_term}%"))
+        results = cursor.fetchall()
+
+        if not results:
+            print("\n📭 No items matched your search.")
+            return
+
+        print("\n🔍 Search Results:")
+        for item in results:
+            print(f"ID: {item['item_id']} | Name: {item['item_name']}\nDesc: {item['item_description']}\nCategory: {item['category']}\nStatus: {item['status']}")
+            print()
+
+    except Exception as e:
+        print("\n❌ Failed to perform search.")
+        print(f"Error: {e}")
+
+    finally:
+        cursor.close()
 menu()
