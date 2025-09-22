@@ -18,6 +18,7 @@ def get_connection():
         'password VARCHAR(50), ' \
         'email VARCHAR(100), ' \
         'points INT DEFAULT 0, ' \
+        'points_history TEXT, ' \
         'created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);')
 
         cursor.execute('CREATE TABLE IF NOT EXISTS ' \

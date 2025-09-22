@@ -113,6 +113,15 @@ def GlobalChat():
 def Profile():
     print("My Profile")
     print("Back to Home Menu (0):")
+    db_connection = get_connection()
+    cursor = db_connection.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM Users WHERE id = %s", (logged_in_user_id,))
+    user = cursor.fetchone()
+    print(f"Username: {user['username']}")
+    print(f"Email: {user['email']}")
+    print(f"Points: {user['points']}")
+    print(f"Account Created At: {user['created_at']}")
+    print(f"Points: {user['points']}")
     inp = int(input("Enter your choice: "))
     if inp == 0:
         return menu()
