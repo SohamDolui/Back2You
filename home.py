@@ -5,9 +5,10 @@ import os
 import subprocess
 import sys
 
+print("Welcome to BACK2YOU")
+print()
+
 def menu():
-    print("Welcome to BACK2YOU")
-    print()
     print("Home Menu")
     print("Report Item (1): Report a lost or found item")
     print("Browse/Search Items (2): Browse or search for lost and found items")
@@ -42,6 +43,10 @@ def menu():
         exit()
     else:
         print("Invalid Input")
+def me():
+    print("Go back to menu (1): ")
+    print("Exit (0): ")
+
 
 def ReportItem():
     print("Report Item")
@@ -158,11 +163,13 @@ def ReportLostItem(logged_in_user_id):
         print(f"Category: {category}")
         if item_image_url:
             print(f"Image URL: {item_image_url}")
+        menu()
 
     except Exception as e:
         db_connection.rollback()
         print("\n❌ Failed to report lost item. Please try again.")
         print(f"Error: {e}")
+        menu()
 
     finally:
         cursor.close()
@@ -178,7 +185,7 @@ def ReportFoundItem(logged_in_user_id):
 
         if not lost_items:
             print("\n📭 No lost items reported yet.")
-            return
+            return menu()
 
         print("\n📌 Lost Items Reported:")
         for item in lost_items:
@@ -204,7 +211,7 @@ def ReportFoundItem(logged_in_user_id):
         """, (item_description, logged_in_user_id, category,"found", item_image_url, chosen_id))
 
         # Step 4: Update status of lost item → "found"
-        cursor.execute("UPDATE Items SET status = 'found' WHERE item_id = %s", (chosen_id,))
+        cursor.execute("""UPDATE Items SET status = 'found' WHERE item_id = %s, found_description = %s, found_by = %s, found_image_url = %s WHERE item_id = %s""", (chosen_id, item_description, logged_in_user_id, item_image_url, chosen_id))
 
         db_connection.commit()
 
@@ -267,12 +274,15 @@ def BrowseLostItems():
             return
 
         print("\n📌 Lost Items Reported:")
+        print()
         for item in lost_items:
             print(f"ID: {item['item_id']} | Name: {item['item_name']}\nDesc: {item['item_description']}\nCategory: {item['category']}")
+            print()
 
     except Exception as e:
         print("\n❌ Failed to retrieve lost items.")
         print(f"Error: {e}")
+        print()
 
     finally:
         cursor.close()
@@ -290,8 +300,10 @@ def BrowseFoundItems():
             return
 
         print("\n📌 Found Items Reported:")
+        print()
         for item in found_items:
             print(f"ID: {item['item_id']} | Name: {item['item_name']}\nDesc: {item['item_description']}\nCategory: {item['category']}")
+            print()
 
     except Exception as e:
         print("\n❌ Failed to retrieve found items.")
