@@ -24,10 +24,11 @@ def get_connection():
         'Items ' \
         '(item_id INT PRIMARY KEY, ' \
         'item_name VARCHAR(100), ' \
-        'item_description TEXT, user_id INT, ' \
+        'item_description TEXT,' \
+        'user_id INT, ' \
         'created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, ' \
         'category VARCHAR(50), ' \
-        'bounty_points INT DEFAULT(10), status ENUM("lost", "found", "claimed"), ' 
+        'bounty_points INT DEFAULT(10), status ENUM("lost", "found but not claimed", "found and claimed"), ' \
         'item_image_url VARCHAR(255), ' \
         'FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE);')
 
