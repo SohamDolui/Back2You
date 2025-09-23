@@ -4,20 +4,20 @@ from login import logged_in_user_id
 import os
 import subprocess
 import sys
-
+from datetime import datetime 
 print("Welcome to BACK2YOU")
 print()
 
 def menu():
-    print("Home Menu")
-    print("Report Item (1): Report a lost or found item")
-    print("Browse/Search Items (2): Browse or search for lost and found items")
-    print("Messages (3): View and manage your messages")
-    print("Global Chat (4): Join the global chat room")
-    print("My Profile (5): View and edit your profile")
-    print("Leaderboard (6): See your heroes who help people find their lost items!")
-    print("Logout (7):")
-    print("Exit (0):")
+    print("🏠 Home Menu")
+    print("⚠️ Report Item (1): Report a lost or found item")
+    print("🔎 Browse/Search Items (2): Browse or search for lost and found items")
+    print("💬 Messages (3): View and manage your messages")
+    print("🌐 Global Chat (4): Join the global chat room")
+    print("🙎‍♂️ My Profile (5): View and edit your profile")
+    print("📈 Leaderboard (6): See your heroes who help people find their lost items!")
+    print("🚪 Logout (7):")
+    print("🏃‍♂️ Exit (0):")
     print()
     inp = int(input("Enter your choice: "))
     print()
@@ -36,30 +36,30 @@ def menu():
         print("Viewing Leaderboard")
         ViewLeaderboard()
     elif inp == 7:
-        print("Logging out...")
+        print("Logging out... 🚪..🏃‍♂️..🏃‍♂️")
         logout()
     elif inp == 0:
-        print("Exiting...")
+        print("Exiting... 🚪..🏃‍♂️..🏃‍♂️")
         exit()
     else:
         print("Invalid Input")
 def me():
     print()
-    print("Go back to menu (1): ")
-    print("Exit (0): ")
+    print("🏠 Go back to menu (1): ")
+    print("🏃‍♂️ Exit (0): ")
     print()
     inp = int(input("Enter your choice: "))
     print()
     if inp == 1:
         return menu()
     elif inp == 0:
-        print("Exiting...")
+        print("Exiting... 🚪..🏃‍♂️..🏃‍♂️")
         exit()
     else:
         print("Invalid Input")
 
 def ReportItem():
-    print("Report Item")
+    print("⚠️ Report Item")
     print("Report Lost Item (1): Lost an item? Let others know!")
     print("Report Found Item (2): Found an item? Become a hero by helping others claim it!")
     print("Go back to Home Menu (0):")
@@ -77,7 +77,7 @@ def ReportItem():
         print("Invalid Input")
 
 def BrowseItems():
-    print("Browse/Search Items")
+    print("🔎 Browse/Search Items")
     print("Browse Lost Items (1): Browse lost items reported by users and be their hero!")
     print("Browse Found Items (2): Browse to claim any found item reported by users")
     print("Search Items (3): Search for specific items")
@@ -99,7 +99,7 @@ def BrowseItems():
         print("Invalid Input")
 
 def Messages():
-    print("Messages")
+    print("💬 Messages")
     print("View Conversations (1):")
     print("Start New Conversation (2):")
     print("Back to Home Menu (0):")
@@ -116,8 +116,43 @@ def Messages():
     else:
         print("Invalid Input")
 
+def MessageUser():
+    s_id = logged_in_user_id
+    r_id = input("Enter the user ID of the person to message: ")
+    if r_id == s_id:
+        print("You cannot message yourself.")
+        return MessageUser()
+    elif not r_id.isdigit():
+        print("Invalid user ID. Please enter a numeric user ID.")
+        return MessageUser()
+    r_id = int(r_id)
+
+    db_connection = get_connection()
+    cursor = db_connection.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM Users WHERE id = %s", (r_id,))
+    recipient = cursor.fetchone()
+    if not recipient:
+        print("User not found. Please enter a valid user ID.")
+        return MessageUser()
+    print(f"Messaging {recipient['username']} | ID: {recipient['id']})")
+    print("Type 'exit' to end the conversation.")
+    message = input("Enter your message: ")
+    while message != "exit":
+        try:
+            cursor.execute("""
+                INSERT INTO Messages (sender_id, receiver_id, message, timestamp)
+                VALUES (%s, %s, %s, %s)
+            """, (s_id, r_id, message, datetime.datetime.now()))
+            db_connection.commit()
+            print("Message sent! Enter another message or type 'exit' to end.")
+        except Exception as e:
+            db_connection.rollback()
+            print("Failed to send message. Please try again.")
+            print(f"Error: {e}")
+        message = input("Enter your message: ")
+
 def GlobalChat():
-    print("Global Chat")
+    print("🌐 Global Chat")
     print("Enter Global Chat Room (1):")
     print("Back to Home Menu (0):")
     print()
@@ -130,7 +165,7 @@ def GlobalChat():
         print("Invalid Input")
 
 def Profile():
-    print("My Profile")
+    print("🙎‍♂️ My Profile")
     print("Back to Home Menu (0):")
     db_connection = get_connection()
     cursor = db_connection.cursor(dictionary=True)
