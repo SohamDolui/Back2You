@@ -12,7 +12,7 @@ def menu():
     print("🏠 Home Menu")
     print("⚠️ Report Item (1): Report a lost or found item")
     print("🔎 Browse/Search Items (2): Browse or search for lost and found items")
-    print("💬 Messages (3): View and manage your messages")
+    print(f"💬 Messages (3): You have {get_unread_message_count(logged_in_user_id)}!")
     print("🌐 Global Chat (4): Join the global chat room")
     print("🙎‍♂️ My Profile (5): View and edit your profile")
     print("📈 Leaderboard (6): See your heroes who help people find their lost items!")
@@ -116,6 +116,14 @@ def Messages():
     else:
         print("Invalid Input")
 
+def get_unread_message_count(user_id):
+    db_connection = get_connection()
+    cursor = db_connection.cursor()
+    cursor.execute("SELECT COUNT(*) FROM Messages WHERE receiver_id = %s AND is_read = 0", (user_id,))
+    count = cursor.fetchone()[0]
+    cursor.close()
+    return str(count)+" unread message"+("" if count == 1 else "")
+
 def MessageUser():
     s_id = logged_in_user_id
     r_id = input("Enter the user ID of the person to message: ")
@@ -142,7 +150,7 @@ def MessageUser():
             cursor.execute("""
                 INSERT INTO Messages (sender_id, receiver_id, message, timestamp)
                 VALUES (%s, %s, %s, %s)
-            """, (s_id, r_id, message, datetime.datetime.now()))
+            """, (s_id, r_id, message, datetime.now()))
             db_connection.commit()
             print("Message sent! Enter another message or type 'exit' to end.")
         except Exception as e:
@@ -150,6 +158,9 @@ def MessageUser():
             print("Failed to send message. Please try again.")
             print(f"Error: {e}")
         message = input("Enter your message: ")
+        sys.stdout.write("\033[K")
+        sys.stdout.flush()
+        print("You: " + message)
 
 def GlobalChat():
     print("🌐 Global Chat")
@@ -166,6 +177,7 @@ def GlobalChat():
 
 def Profile():
     print("🙎‍♂️ My Profile")
+    print("Delete Account (1): Permanently delete your account and all associated data")
     print("Back to Home Menu (0):")
     db_connection = get_connection()
     cursor = db_connection.cursor(dictionary=True)
@@ -179,6 +191,21 @@ def Profile():
     inp = int(input("Enter your choice: "))
     if inp == 0:
         return menu()
+    elif inp == 1:
+        confirm = input("Are you sure you want to delete your account? This action is irreversible. (y/n): ")
+        if confirm.lower() == "y":
+            try:
+                cursor.execute("DELETE FROM Users WHERE id = %s", (logged_in_user_id,))
+                db_connection.commit()
+                print("Your account and all associated data have been deleted.")
+                logout()
+            except Exception as e:
+                db_connection.rollback()
+                print("Failed to delete account. Please try again.")
+                print(f"Error: {e}")
+        else:
+            print("Account deletion cancelled.")
+            return Profile()
     else:
         print("Invalid Input")
 
@@ -230,7 +257,6 @@ def ReportFoundItem(logged_in_user_id):
 
         if not lost_items:
             print("\n📭 No lost items reported yet.")
-            return menu()
 
         print("\n📌 Lost Items Reported:")
         for item in lost_items:
@@ -269,7 +295,7 @@ def ReportFoundItem(logged_in_user_id):
 
     finally:
         cursor.close()
-        me()
+    me()
 
 def ViewLeaderboard():
     db_connection = get_connection()

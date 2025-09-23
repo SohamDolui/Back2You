@@ -38,11 +38,12 @@ def get_connection():
 
         cursor.execute('CREATE TABLE IF NOT EXISTS '
         'Messages ' \
-        '(message_id INT PRIMARY KEY, ' \
+        '(message_id INT AUTO_INCREMENT PRIMARY KEY, ' \
         'sender_id INT, ' \
         'receiver_id INT, ' \
         'content TEXT, ' \
         'created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, ' \
+        'is_read BOOLEAN DEFAULT FALSE, ' \
         'FOREIGN KEY (sender_id) REFERENCES Users(id) ON DELETE CASCADE, ' \
         'FOREIGN KEY (receiver_id) REFERENCES Users(id) ON DELETE CASCADE);')
 
@@ -56,4 +57,5 @@ def get_connection():
         conn.commit()
         cursor.close()
         return conn
+
 get_connection()
