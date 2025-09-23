@@ -23,7 +23,7 @@ def get_connection():
 
         cursor.execute('CREATE TABLE IF NOT EXISTS ' \
         'Items ' \
-        '(item_id INT PRIMARY KEY, ' \
+        '(item_id INT PRIMARY KEY AUTO_INCREMENT, ' \
         'item_name VARCHAR(100), ' \
         'item_description TEXT,' \
         'user_id INT, ' \
@@ -34,7 +34,8 @@ def get_connection():
         'found_description TEXT, ' \
         'found_by INT, ' \
         'found_image_url VARCHAR(2000), ' \
-        'FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE);')
+        'FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE, ' \
+        'FOREIGN KEY (found_by) REFERENCES Users(id) ON DELETE CASCADE);')
 
         cursor.execute('CREATE TABLE IF NOT EXISTS '
         'Messages ' \
