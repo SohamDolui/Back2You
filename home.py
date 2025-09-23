@@ -1,4 +1,3 @@
-import mysql.connector as ms
 from db import get_connection
 from login import logged_in_user_id
 import os
@@ -16,8 +15,8 @@ def menu():
     print("🌐 Global Chat (4): Join the global chat room")
     print("🙎‍♂️ My Profile (5): View and edit your profile")
     print("📈 Leaderboard (6): See your heroes who help people find their lost items!")
-    print("🚪 Logout (7):")
-    print("🏃‍♂️ Exit (0):")
+    print("🚪 Logout (7)")
+    print("🏃‍♂️ Exit (0)")
     print()
     inp = int(input("Enter your choice: "))
     print()
@@ -107,10 +106,10 @@ def Messages():
     inp = int(input("Enter your choice: "))
     if inp == 1:
         print("Viewing Conversations")
-        ViewConversations()
+        # ViewConversations()
     elif inp == 2:
         print("Starting New Conversation")
-        StartNewConversation()
+        # StartNewConversation()
     elif inp == 0:
         return menu()
     else:

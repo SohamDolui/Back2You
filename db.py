@@ -1,4 +1,8 @@
+from dotenv import load_dotenv
 import mysql.connector as ms
+import os
+
+load_dotenv()
 
 conn = None
 
@@ -7,7 +11,7 @@ def get_connection():
     if conn is not None:
         return conn
     else:
-        conn = ms.connect(host='localhost', user='root', password='1234')
+        conn = ms.connect(host='localhost', user='root', password=os.getenv("ROOT_PASSWORD"), use_pure = True)
         cursor = conn.cursor()
         cursor.execute('CREATE DATABASE IF NOT EXISTS Back2You')
         cursor.execute('USE Back2You')
@@ -56,4 +60,3 @@ def get_connection():
         conn.commit()
         cursor.close()
         return conn
-get_connection()
