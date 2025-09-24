@@ -5,21 +5,18 @@ import os
 import subprocess
 import sys
 from datetime import datetime
-from colorama import init
+from count import count_unread_messages, count_found_items_unclaimed, count_lost_items, count_reported_items
 
-init()
-
-def clr_line():
-    sys.stdout.write("\033[2K\r")
+def clr_line():# overwrite the input line cleanly
+    sys.stdout.write("\033[F")  # move cursor up
+    sys.stdout.write("\033[K")  # clear line
     sys.stdout.flush()
-
-
 
 def menu():
     print("🏠 Home Menu")
     print("⚠️ Report Item (1): Report a lost or found item")
     print("🔎 Browse/Search Items (2): Browse or search for lost and found items")
-    print(f"💬 Messages (3): You have {get_unread_message_count(logged_in_user_id)}!")
+    print(f"💬 Messages (3): {count_unread_messages(logged_in_user_id)}")
     print("🌐 Global Chat (4): Join the global chat room")
     print("🙎‍♂️ My Profile (5): View and edit your profile")
     print("📈 Leaderboard (6): See your heroes who help people find their lost items!")
@@ -104,9 +101,11 @@ def ReportItem():
 
 def BrowseItems():
     print("🔎 Browse/Search Items")
-    print("Browse Lost Items (1): Browse lost items reported by users and be their hero!")
-    print("Browse Found Items (2): Browse to claim any found item reported by users")
-    print("Search Items (3): Search for specific items")
+    print(f"Browse Your Lost Items (1): {count_found_items_unclaimed(logged_in_user_id)}")
+    print(f"Browse All Lost Items (2): {count_lost_items()} Help users connect with their lost belongings!")
+    print(f"Browse Found Items (3): ")
+    print("Search Items (4): Search for specific items")
+    print("See list of all items (5): ")
     print("Back to Home Menu (0):")
     print()
     inp = int(input("Enter your choice: "))
@@ -142,69 +141,59 @@ def Messages():
     else:
         print("Invalid Input")
 
-def get_unread_message_count(user_id):
-    db_connection = get_connection()
-    cursor = db_connection.cursor()
-    cursor.execute("SELECT COUNT(*) FROM Messages WHERE receiver_id = %s AND is_read = 0", (user_id,))
-    count = cursor.fetchone()[0]
-    cursor.close()
-    return str(count)+" unread message"+("" if count == 1 else "s")
-
 def MessageUser():
     s_id = logged_in_user_id
-    r_id = input("Enter the user ID of the person to message: ")
-    if r_id == s_id:
-        print("You cannot message yourself.")
-        return MessageUser()
-    elif not r_id.isdigit():
-        print("Invalid user ID. Please enter a numeric user ID.")
-        return MessageUser()
-    r_id = int(r_id)
-
+    r_id = input("Enter the user ID or the Username of the person to message: ")
     db_connection = get_connection()
     cursor = db_connection.cursor(dictionary=True)
+    if not r_id.isdigit():
+        cursor.execute("SELECT * FROM Users WHERE username = %s", (r_id,))
+        user = cursor.fetchone()
+        r_id = user['id'] if user else None
+    else:
+        r_id = int(r_id)
+    
+    if r_id is None:
+        print("User not found. Please enter a valid user ID or Username.")
+        return MessageUser()
+    if r_id == s_id:
+        print("You cannot message yourself. Please enter a different user ID or Username.")
+        return MessageUser()
+
     cursor.execute("SELECT * FROM Users WHERE id = %s", (r_id,))
     recipient = cursor.fetchone()
     if not recipient:
         print("User not found. Please enter a valid user ID.")
         return MessageUser()
-    print(f"Messaging {recipient['username']} | ID: {recipient['id']})")
+
+    print(f"Messaging {recipient['username']} | ID: {recipient['id']}")
     print("Type 'exit' to end the conversation.")
-    message = input("Enter your message: ")
-    clr_line()
-    sys.stdout.flush()
-    try:
-        cursor.execute("""
-            INSERT INTO Messages (sender_id, receiver_id, content, created_at)
-            VALUES (%s, %s, %s, %s)
-        """, (s_id, r_id, message, datetime.now()))
-        db_connection.commit()
-        print("Message sent! Enter another message or type 'exit' to end.")
-    except Exception as e:
-        db_connection.rollback()
-        print("Failed to send message. Please try again.")
-        print(f"Error: {e}")
+
+    while True:
         message = input("Enter your message: ")
-        clr_line()
-        sys.stdout.flush()
-        print("You: " + message)
-    print("You: " + message)
-    while message != "exit":
+
+        if message.lower() == "exit":
+            print("Exiting conversation...")
+            cursor.close()
+            db_connection.close()
+            return me()
+
         try:
-            message = input("Enter your message: ")
             cursor.execute("""
                 INSERT INTO Messages (sender_id, receiver_id, content, created_at)
                 VALUES (%s, %s, %s, %s)
             """, (s_id, r_id, message, datetime.now()))
             db_connection.commit()
+
             clr_line()
             sys.stdout.flush()
+
             print("You: " + message)
+
         except Exception as e:
             db_connection.rollback()
-            print("Failed to send message. Please try again.")
-            print(f"Error: {e}")
-
+            print("❌ Failed to send message:", e)
+        
 def GlobalChat():
     print("🌐 Global Chat")
     print("Enter Global Chat Room (1):")
@@ -218,23 +207,72 @@ def GlobalChat():
     else:
         print("Invalid Input")
 
+def verify_user(user_id, password):
+    db_connection = get_connection()
+    cursor = db_connection.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM Users WHERE id = %s", (user_id,))
+    user = cursor.fetchone()
+    if user and user['password'] == password:
+        return True
+    return False
+
 def Profile():
     print("🙎‍♂️ My Profile")
-    print("Delete Account (1): Permanently delete your account and all associated data")
-    print("Back to Home Menu (0):")
     db_connection = get_connection()
     cursor = db_connection.cursor(dictionary=True)
     cursor.execute("SELECT * FROM Users WHERE id = %s", (logged_in_user_id,))
     user = cursor.fetchone()
+    print()
     print(f"Username: {user['username']}")
     print(f"Email: {user['email']}")
     print(f"Points: {user['points']}")
     print(f"Account Created At: {user['created_at']}")
     print(f"Points: {user['points']}")
+    print()
+    print("Edit Profile (1): Update your username, email, or password")
+    print("View Your reported Items (2): See items you've reported")
+    print("Delete Account (3): Permanently delete your account and all associated data")
+    print("Back to Home Menu (0):")
+    print()
     inp = int(input("Enter your choice: "))
+    clr_line()
+    print("Your choice:", inp)
     if inp == 0:
         return menu()
     elif inp == 1:
+        print("Editing Profile")
+        print("Change Username (1): ")
+        print("Change Email (2): ")
+        print("Change Password (3): ")
+        print("Go back to Profile (0): ")
+        print()
+        inp = int(input("Enter your choice: "))
+        if inp == 1:
+            print("Verify your identity to proceed.")
+            password = input("Enter your current password: ")
+            if not verify_user(logged_in_user_id, password):
+                print("Authentication failed. Incorrect password.")
+                return Profile()
+            new_username = input("Enter your new username: ")
+            cursor.execute("UPDATE Users SET username = %s WHERE id = %s", (new_username, logged_in_user_id))
+            db_connection.commit()
+            print("Username updated successfully.")
+        elif inp == 2:
+            new_email = input("Enter your new email: ")
+            cursor.execute("UPDATE Users SET email = %s WHERE id = %s", (new_email, logged_in_user_id))
+            db_connection.commit()
+            print("Email updated successfully.")
+        elif inp == 3:
+            new_password = input("Verify your current password: ")
+            cursor.execute("UPDATE Users SET password = %s WHERE id = %s", (new_password, logged_in_user_id))
+            db_connection.commit()
+            print("Password updated successfully.")
+        elif inp == 0:
+            return Profile()
+        else:
+            print("Invalid Input")
+        db_connection.commit()
+    elif inp == 3:
         confirm = input("Are you sure you want to delete your account? This action is irreversible. (y/n): ")
         if confirm.lower() == "y":
             try:
@@ -317,42 +355,53 @@ def ReportFoundItem(logged_in_user_id):
             print(f"ID: {item['item_id']} | Name: {item['item_name']}\nDesc: {item['item_description']}")
 
         # Step 2: Ask which lost item was found
+        print("Don't see the item you found? It might have already been claimed or reported as found.")
+        print("Check Lost Items (c1) or Found Items (c2).")
         chosen_id = int(input("\nEnter the ID of the item you found: "))
-
-        # Check if the ID exists in the lost list
-        if not any(item['item_id'] == chosen_id for item in lost_items):
-            print("❌ Invalid ID. Please try again.")
-            return
-
-        # Step 3: Insert new 'found' report under current user
-        item_description = input("Enter description/details for found item (or leave blank): ")
-        # category = lost_items[[item['item_id'] for item in lost_items].index(chosen_id)]['category']
-        item_image_url = input("Enter image URL (or leave blank): ")
-
-        # cursor.execute("""
-        #     INSERT INTO Items (found_description, found_by, status, found_image_url)
-        #     SELECT item_name, %s, %s, %s, %s, %s
-        #     FROM Items WHERE item_id = %s
-        # """, (item_description, logged_in_user_id, category,"found", item_image_url, chosen_id))
-
-        # Step 4: Update status of lost item → "found"
+        if chosen_id == "c1":
+            BrowseLostItems()
+        elif chosen_id == "c2":
+            BrowseFoundItems()
+        elif chosen_id.isdigit():
+            clr_line()
+            sys.stdout.flush()
+            print(f"Chosen Item ID: {chosen_id}")
+            # Check if the ID exists in the lost list
+            if not any(item['item_id'] == chosen_id for item in lost_items):
+                print("❌ Invalid ID. Please try again.")
+                return
+    
+            # Step 3: Insert new 'found' report under current user
+            item_description = input("Enter description/details for found item (or leave blank): ")
+            # category = lost_items[[item['item_id'] for item in lost_items].index(chosen_id)]['category']
+            item_image_url = input("Enter image URL (or leave blank): ")
+    
+            # cursor.execute("""
+            #     INSERT INTO Items (found_description, found_by, status, found_image_url)
+            #     SELECT item_name, %s, %s, %s, %s, %s
+            #     FROM Items WHERE item_id = %s
+            # """, (item_description, logged_in_user_id, category,"found", item_image_url, chosen_id))
+    
+            # Step 4: Update status of lost item → "found"
         
-        cursor.execute("SELECT bounty_points FROM Items WHERE item_id = %s", (chosen_id,))
-        bounty = cursor.fetchone()['bounty_points']
-        cursor.execute("SELECT points FROM Users WHERE id = %s", (logged_in_user_id,))
-        bounty_user = bounty + cursor.fetchone()['points']
-        cursor.execute("""UPDATE Items SET status = 'found but not claimed', found_description = %s, found_by = %s, found_image_url = %s WHERE item_id = %s""", (item_description, logged_in_user_id, item_image_url, chosen_id))
-        cursor.execute("UPDATE Users SET points = %s WHERE id = %s", (bounty_user, logged_in_user_id))
-        cursor.execute("SELECT bounty_points FROM Items WHERE item_id = %s", (chosen_id,))
-        bounty = cursor.fetchone()['bounty_points']
-
-        db_connection.commit()
-
-        print(f"\n✅ Item ID {chosen_id} marked as FOUND and recorded under your account.")
-        print("Thank you for helping reunite lost items with their owners!")
-        print(f"You have been rewarded {bounty} points for your good deed!")
-        me()
-
+            cursor.execute("SELECT bounty_points FROM Items WHERE item_id = %s", (chosen_id,))
+            bounty = cursor.fetchone()['bounty_points']
+            cursor.execute("SELECT points FROM Users WHERE id = %s", (logged_in_user_id,))
+            bounty_user = bounty + cursor.fetchone()['points']
+            cursor.execute("""UPDATE Items SET status = 'found but not claimed', found_description = %s, found_by = %s, found_image_url = %s WHERE item_id = %s""", (item_description, logged_in_user_id, item_image_url, chosen_id))
+            cursor.execute("UPDATE Users SET points = %s WHERE id = %s", (bounty_user, logged_in_user_id))
+            cursor.execute("SELECT bounty_points FROM Items WHERE item_id = %s", (chosen_id,))
+            bounty = cursor.fetchone()['bounty_points']
+    
+            db_connection.commit()
+    
+            print(f"\n✅ Item ID {chosen_id} marked as FOUND and recorded under your account.")
+            print("Thank you for helping reunite lost items with their owners!")
+            print(f"You have been rewarded {bounty} points for your good deed!")
+            me()
+        else:
+            print("❌ Invalid input. Please enter a valid item ID.")
+            return me()
     except Exception as e:
         db_connection.rollback()
         print("\n❌ Failed to register found item.")
