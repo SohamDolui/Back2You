@@ -1,12 +1,15 @@
 from db import get_connection
 
-def count_lost_items():
+def count_lost_items(a):
     db_connection = get_connection()
     cursor = db_connection.cursor()
     cursor.execute("SELECT COUNT(*) FROM Items WHERE status = 'lost'")
     count = cursor.fetchone()[0]
     cursor.close()
-    return "There are currently no lost items reported." if count == 0 else "There is currently 1 lost item reported." if count == 1 else f"There are currently {count} lost items reported."
+    if a:
+        return count
+    else:
+        return "There are currently no lost items reported." if count == 0 else "There is currently 1 lost item reported." if count == 1 else f"There are currently {count} lost items reported."
 
 def count_reported_items(user_id):
     db_connection = get_connection()

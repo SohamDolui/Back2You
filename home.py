@@ -84,15 +84,15 @@ def me2():
 def ReportItem():
     print("⚠️ Report Item")
     print("Report Lost Item (1): Lost an item? Let others know!")
-    print("Report Found Item (2): Found an item? Become a hero by helping others claim it!")
+    print(f"Report Found Item (2): Found an item ? Become a hero by helping others claim it!")
     print("Go back to Home Menu (0):")
     print()
     inp = int(input("Enter your choice: "))
     if inp == 1:
-        print("Reporting a Lost Item")
+        print("Reporting a Lost Item...")
         ReportLostItem(logged_in_user_id)
     elif inp == 2:
-        print("Reporting Found Item")
+        print("Reporting Found Item...")
         ReportFoundItem(logged_in_user_id)
     elif inp == 0:
         return menu()
