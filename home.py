@@ -290,54 +290,86 @@ def Profile():
     else:
         print("Invalid Input")
 
+def ValidateRepeatedItem(item_name):
+    db_connection = get_connection()
+    cursor = db_connection.cursor()
+    
+
 def ReportLostItem(logged_in_user_id):
     item_name = input("Enter the name of the lost item: ")
     if not item_name:
         print("Item name cannot be empty. Please try again.")
         return ReportLostItem(logged_in_user_id)
+    try:
+        cursor.execute("""
+        SELECT EXISTS (SELECT * FROM Items WHERE item_name = %s);
+        """), (item_name, )
+        exists = cursor.fetchone()
+        if exists:
+            print(f"ID: {exists['item_id']} | Name: {exists['item_name']}\nDesc: {exists['item_description']}\nCategory: {exists['category']}")
+            print()
+            confirmation = input("Is this the same item you are logging in currently? (y/n): ")
+            if confirmation.lower() == "y":
+                print("You cannot log in the same item twice!")
+                db_connection.rollback()
+            elif confirmation == "n":
+                pass
+
+    except Exception as e:
+        print("\n❌ Failed to validate item.")
+        print(f"Error: {e}")
+        return False
+
+    finally:
+        cursor.close()
+        db_connection.close()
+
     item_description = input("Enter a description of the lost item: ")
     if not item_description:
         print("Item description cannot be empty. Please try again.")
         return ReportLostItem(logged_in_user_id)
     category = input("Enter category of the item: ")
-    bounty = int(input("Enter the price of the item (This will not be displayed to others and will be only used for calculation of points): "))//10
-    if bounty < 1 or bounty == "":
-        bounty = 1
-        print("Minimum bounty is 1 point. Setting bounty to 1 point.")
-    item_image_url = input("Enter an image URL (or leave blank): ")
+    if exists['item_name'] == item_name and exists['item_description'] == item_description and exists['category'] == category and exists['user_id'] == logged_in_user_id:
+        print("You cannot report the same item twice!")
+    else:
+        bounty = int(input("Enter the price of the item (This will not be displayed to others and will be only used for calculation of points): "))//10
+        if bounty < 1 or bounty == "":
+            bounty = 1
+            print("Minimum bounty is 1 point. Setting bounty to 1 point.")
+        item_image_url = input("Enter an image URL (or leave blank): ")
+    
+        db_connection = get_connection()
+        cursor = db_connection.cursor()
+        cursor.execute("SELECT COUNT(*) FROM Items")
+        item_id = cursor.fetchone()[0] + 1
+    
+        try:
+            cursor.execute("""
+                INSERT INTO Items (item_id, item_name, item_description, user_id, category, bounty_points, status, item_image_url)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """, (item_id, item_name, item_description, logged_in_user_id, category, bounty, "lost", item_image_url))
+    
+            db_connection.commit()
+            
+            print(f"\n✅ Lost Item Reported Successfully!")
+            print(f"Name: {item_name}")
+            print(f"Description: {item_description}")
+            print(f"Category: {category}")
+            if item_image_url:
+                print(f"Image URL: {item_image_url}")
+            me()
 
-    db_connection = get_connection()
-    cursor = db_connection.cursor()
-    cursor.execute("SELECT COUNT(*) FROM Items")
-    item_id = cursor.fetchone()[0] + 1
+        except Exception as e:
+            db_connection.rollback()
+            print("\n❌ Failed to report lost item. Please try again.")
+            print(f"Error: {e}")
+            me()
 
-    try:
-        cursor.execute("""
-            INSERT INTO Items (item_id, item_name, item_description, user_id, category, bounty_points, status, item_image_url)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        """, (item_id, item_name, item_description, logged_in_user_id, category, bounty, "lost", item_image_url))
-
-        db_connection.commit()
-        
-
-        print(f"\n✅ Lost Item Reported Successfully!")
-        print(f"Name: {item_name}")
-        print(f"Description: {item_description}")
-        print(f"Category: {category}")
-        if item_image_url:
-            print(f"Image URL: {item_image_url}")
-        me()
-
-    except Exception as e:
-        db_connection.rollback()
-        print("\n❌ Failed to report lost item. Please try again.")
-        print(f"Error: {e}")
-        me()
-
-    finally:
-        cursor.close()
+        finally:
+            cursor.close()
         
 def ReportFoundItem(logged_in_user_id):
+    
     db_connection = get_connection()
     cursor = db_connection.cursor(dictionary=True)  # dictionary=True gives column names in result
 
