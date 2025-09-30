@@ -23,30 +23,31 @@ def menu():
     print("🚪 Logout (7):")
     print("🏃‍♂️ Exit (0):")
     print()
-    inp = int(input("Enter your choice: "))
+    inp = input("Enter your choice: ")
     print()
     print()
-    if inp == 1:
+    if inp == "1":
         ReportItem()
-    elif inp == 2:
+    elif inp == "2":
         BrowseItems()
-    elif inp == 3:
+    elif inp == "3":
         Messages()
-    elif inp == 4:
+    elif inp == "4":
         GlobalChat()
-    elif inp == 5:
+    elif inp == "5":
         Profile()
-    elif inp == 6:
+    elif inp == "6":
         print("Viewing Leaderboard")
         ViewLeaderboard()
-    elif inp == 7:
+    elif inp == "7":
         print("Logging out... 🚪..🏃‍♂️..🏃‍♂️")
         logout()
-    elif inp == 0:
+    elif inp == "0":
         print("Exiting... 🚪..🏃‍♂️..🏃‍♂️")
         exit()
     else:
         print("Invalid Input")
+        me()
 def me():
     print()
     print("🏠 Go back to menu (1): ")
@@ -290,35 +291,33 @@ def Profile():
     else:
         print("Invalid Input")
 
-def ValidateRepeatedItem(item_name):
-    db_connection = get_connection()
-    cursor = db_connection.cursor()
-    
-
 def ReportLostItem(logged_in_user_id):
+    db_connection = get_connection()
+    cursor = db_connection.cursor(dictionary=True)
     item_name = input("Enter the name of the lost item: ")
     if not item_name:
         print("Item name cannot be empty. Please try again.")
         return ReportLostItem(logged_in_user_id)
     try:
-        cursor.execute("""
-        SELECT EXISTS (SELECT * FROM Items WHERE item_name = %s);
-        """), (item_name, )
+        cursor.execute("SELECT * FROM Items WHERE item_name = %s;", (item_name, ))
         exists = cursor.fetchone()
         if exists:
+            print()
             print(f"ID: {exists['item_id']} | Name: {exists['item_name']}\nDesc: {exists['item_description']}\nCategory: {exists['category']}")
             print()
             confirmation = input("Is this the same item you are logging in currently? (y/n): ")
             if confirmation.lower() == "y":
+                print()
                 print("You cannot log in the same item twice!")
                 db_connection.rollback()
+                return me()
             elif confirmation == "n":
                 pass
 
     except Exception as e:
         print("\n❌ Failed to validate item.")
         print(f"Error: {e}")
-        return False
+        return me()
 
     finally:
         cursor.close()
@@ -328,14 +327,22 @@ def ReportLostItem(logged_in_user_id):
     if not item_description:
         print("Item description cannot be empty. Please try again.")
         return ReportLostItem(logged_in_user_id)
+    category = "Others"
     category = input("Enter category of the item: ")
     if exists['item_name'] == item_name and exists['item_description'] == item_description and exists['category'] == category and exists['user_id'] == logged_in_user_id:
+        print()
         print("You cannot report the same item twice!")
+        return me()
     else:
-        bounty = int(input("Enter the price of the item (This will not be displayed to others and will be only used for calculation of points): "))//10
-        if bounty < 1 or bounty == "":
-            bounty = 1
-            print("Minimum bounty is 1 point. Setting bounty to 1 point.")
+        bounty = input("Enter the price of the item (This will not be displayed to others and will be only used for calculation of points): ")//10
+        if bounty.isdigit():
+            if bounty < 1 or bounty == "":
+                bounty = 1
+                print("Minimum bounty is 1 point. Setting bounty to 1 point.")
+        else:
+            print("Please Enter a valid input.")
+            me()
+
         item_image_url = input("Enter an image URL (or leave blank): ")
     
         db_connection = get_connection()

@@ -1,4 +1,4 @@
  - add predefined categories
  - add option to delete reports that have been found by user itself
  - add a new feature to highlight ones lost items for a small price 
- - 
+ - add a log.txt to show history
