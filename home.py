@@ -20,16 +20,149 @@ def clr_line():# overwrite the input line cleanly
     sys.stdout.write("\033[K")  # clear line
     sys.stdout.flush()
 
-def verify_email(email):
+def verify_email(email, otp):
     import os
     from sendgrid import SendGridAPIClient
     from sendgrid.helpers.mail import Mail
-    otp = random.randint(1000, 9999)
+    html_template = f"""
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>Back2You Email Verification</title>
+    <style>
+        body {{
+            font-family: 'Trebuchet MS', sans-serif;
+            background-color: #ffffff;
+            color: #333333;
+            margin: 0;
+            padding: 0;
+        }}
+        .container {{
+            max-width: 600px;
+            margin: 40px auto;
+            border: 1px solid #fafafa;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }}
+        .header {{
+            background-color: #fafafa;
+            padding: 20px;
+            text-align: center;
+            border-bottom: 2px solid #ff4d4d;
+        }}
+        .header img {{
+            max-width: 150px;
+            height: auto;
+        }}
+        .content {{
+            padding: 30px;
+            text-align: center;
+            background-color: #ff4d4d;
+        }}
+        .content h1 {{
+            color: #ff4d4d;
+            background-color: #fafafa;
+            font-size: 24px;
+            margin: 20px auto; /* centers the block */
+            padding: 10px 0;
+            width: 60%;          /* wider than fit-content but not full width */
+            min-width: 200px;    /* ensures it doesn’t get too small on mobile */
+            max-width: 400px;    /* prevents it from being too wide on large screens */
+            border-radius: 5px;
+            text-align: center;  /* centers the text inside the block */
+        }}
+
+
+        .otp {{
+            display: inline-block;
+            background-color: #ff4d4d;
+            color: #ffffff;
+            font-size: 28px;
+            font-weight: bold;
+            padding: 15px 30px;
+            border-radius: 8px;
+            margin: 20px 0;
+            letter-spacing: 2px;
+        }}
+        .footer {{
+            background-color: #f9f9f9;
+            color: #777777;
+            font-size: 12px;
+            text-align: center;
+            padding: 15px;
+            border-top: 1px solid #eee;
+        }}
+        a.button {{
+            background-color: #ff4d4d;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 12px 25px;
+            border-radius: 6px;
+            font-weight: bold;
+            display: inline-block;
+            margin-top: 20px;
+        }}
+        #emailtext {{
+            font-size: 16px;
+            line-height: 1.5;
+            margin: 10px 0;
+            background-color: #f2f2f2;
+            padding: 20px 15px;
+            border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+        }}
+
+        /* Create a soft gradient border using a pseudo-element */
+        #emailtext::before {{
+            content: '';
+            position: absolute;
+            top: -3px; 
+            left: -3px;
+            right: -3px;
+            bottom: -3px;
+            border-radius: 18px; /* slightly bigger than the container */
+            background: linear-gradient(to right, #ffcccc, #ffe6e6);
+            z-index: -1; /* behind the content */
+        }}
+
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <!-- Add your logo here -->
+            <img src='https://ik.imagekit.io/oy2mxy02p/back2you.jpg?updatedAt=1759601369037' alt='Back2You Logo'>
+        </div>
+        <div class='content'>
+                <h1>Email Verification</h1>
+            <div id='emailtext'>
+                <p>Hello! 👋</p>
+                <p>Thank you for joining <strong>Back2You</strong>.</p>
+                <p>To complete your registration, please use the OTP below:</p>
+                <div class='otp'>{otp}</div>
+                <p>If you did not request this email, you can safely ignore it.</p>
+                <a href='#' class='button'>Verify Now</a>
+            </div>
+        </div>
+        <div class='footer'>
+            &copy; 2025 Back2You. All rights reserved.<br>
+            Lost something? Found something? Connect with the community at <a href='https://back2you.com'>back2you.com</a><br>
+            Got any suggestions? or want to provide feedback? <br>
+            Please feel free to reach out to us at <a href="mailto:back2you.bot@gmail.com">back2you.bot@gmail.com</a>
+        </div>
+    </div>
+</body>
+</html>
+"""
     message = Mail(
         from_email="back2you.bot@gmail.com",
         to_emails=email,
-        subject='Email Verification - Back2You',
-        html_content=f"Your OTP is: <strong>{otp}</strong>"
+        subject=f'{otp} - Email Verification - Back2You',
+        html_content=html_template
     )
     try:
         sg = SendGridAPIClient(os.environ.get('SENDGRID_API_KEY'))
@@ -41,6 +174,7 @@ def verify_email(email):
         print("Failed to send verification email. Please try again later.")
         me()
         return False
+    return True
 
 # --- small helper to avoid repeated crashes when user types non-numeric input ---
 def int_input(prompt):
@@ -465,7 +599,22 @@ def Profile():
                     continue
                 break
             print("Please verify E-mail before proceeding...")
+            otp = random.randint(1000, 9999)
             User_OTP = input(f"Enter the OTP sent to {new_email}: ")
+            while True:
+                if not verify_email(new_email, otp):
+                    print("Failed to send verification email. Please try again later.")
+                    return Profile()
+                try:
+                    if int(User_OTP) == otp:
+                        print("Email verified successfully ✅")
+                        break
+                    else:
+                        print("Incorrect OTP. Please try again.")
+                        User_OTP = input(f"Enter the OTP sent to {new_email}: ")
+                except ValueError:
+                    print("Invalid input. Please enter the numeric OTP.")
+                    User_OTP = input(f"Enter the OTP sent to {new_email}: ")
             cursor.execute("UPDATE Users SET email = %s WHERE id = %s", (new_email, logged_in_user_id))
             db_connection.commit()
             print("Email updated successfully.")
