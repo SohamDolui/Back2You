@@ -8,6 +8,8 @@ from datetime import datetime
 import count
 from count import count_found_items_claimed, count_unread_messages, count_found_items_unclaimed, count_lost_items, count_reported_items
 import re
+import random
+
 
 def validate_email(email: str) -> bool:
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
@@ -17,6 +19,28 @@ def clr_line():# overwrite the input line cleanly
     sys.stdout.write("\033[F")  # move cursor up
     sys.stdout.write("\033[K")  # clear line
     sys.stdout.flush()
+
+def verify_email(email):
+    import os
+    from sendgrid import SendGridAPIClient
+    from sendgrid.helpers.mail import Mail
+    otp = random.randint(1000, 9999)
+    message = Mail(
+        from_email="back2you.bot@gmail.com",
+        to_emails=email,
+        subject='Email Verification - Back2You',
+        html_content=f"Your OTP is: <strong>{otp}</strong>"
+    )
+    try:
+        sg = SendGridAPIClient(os.environ.get('SENDGRID_API_KEY'))
+        # sg.set_sendgrid_data_residency("eu")
+        # uncomment the above line if you are sending mail using a regional EU subuser
+        response = sg.send(message)
+        print("Verification email sent. Please check your inbox. (If not found, check Spam/Junk folder)")
+    except Exception:
+        print("Failed to send verification email. Please try again later.")
+        me()
+        return False
 
 # --- small helper to avoid repeated crashes when user types non-numeric input ---
 def int_input(prompt):
@@ -440,6 +464,8 @@ def Profile():
                     print("Invalid email format. Please try again.")
                     continue
                 break
+            print("Please verify E-mail before proceeding...")
+            User_OTP = input(f"Enter the OTP sent to {new_email}: ")
             cursor.execute("UPDATE Users SET email = %s WHERE id = %s", (new_email, logged_in_user_id))
             db_connection.commit()
             print("Email updated successfully.")
