@@ -532,6 +532,8 @@ def GoBackToProfile():
     print("⬅️ Go back to Profile (1): ")
     print("🏃‍♂️ Exit (0): ")
     inp = input("Enter Your Choice: ")
+    if inp.isdigit():
+        inp = int(inp)
     if inp == 1:
         return Profile()
     elif inp == 0:
@@ -600,12 +602,12 @@ def Profile():
                 break
             print("Please verify E-mail before proceeding...")
             otp = random.randint(1000, 9999)
-            User_OTP = input(f"Enter the OTP sent to {new_email}: ")
             while True:
                 if not verify_email(new_email, otp):
                     print("Failed to send verification email. Please try again later.")
                     return Profile()
                 try:
+                    User_OTP = int(input(f"Enter the OTP sent to {new_email}: "))
                     if int(User_OTP) == otp:
                         print("Email verified successfully ✅")
                         break
@@ -620,6 +622,30 @@ def Profile():
             print("Email updated successfully.")
 
         elif inp == 3:
+            print("Verify your identity to proceed.")
+            while True:
+                password = input("Enter your current password (Enter f if you forgot your password): ")
+                if password == "f":
+                    print("Verify it's you - Enter the OTP sent to your registered email.")
+                    otp = random.randint(1000, 9999)
+                    if not verify_email(user['email'], otp):
+                        print("Failed to send verification email. Please try again later.")
+                        return Profile()
+                    try:
+                        User_OTP = int(input(f"Enter the OTP sent to {user['email']}: "))
+                        if int(User_OTP) == otp:
+                            print("Email verified successfully ✅")
+                            break
+                        else:
+                            print("Incorrect OTP. Please try again.")
+                            continue
+                    except ValueError:
+                        print("Invalid input. Please enter the numeric OTP.")
+                        continue
+                if not verify_user(logged_in_user_id, password):
+                    print("Authentication failed. Incorrect password.")
+                    continue
+                break
             new_password = input("Verify your current password: ")
             cursor.execute("UPDATE Users SET password = %s WHERE id = %s", (new_password, logged_in_user_id))
             db_connection.commit()
@@ -647,6 +673,8 @@ def Profile():
         else:
             print("Account deletion cancelled.")
             return Profile()
+    elif inp == 0:
+        exit()
     else:
         print("Invalid Input")
 
