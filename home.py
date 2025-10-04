@@ -1,3 +1,5 @@
+print("🙏 Welcome to Back2You - Reuniting What Matters.")
+
 import mysql.connector as ms
 from db import get_connection
 from login import logged_in_user_id
@@ -176,8 +178,8 @@ def verify_email(email, otp):
         return False
     return True
 
-# --- small helper to avoid repeated crashes when user types non-numeric input ---
 def int_input(prompt):
+# --- small helper to avoid repeated crashes when user types non-numeric input ---
     while True:
         try:
             return int(input(prompt))
@@ -223,6 +225,7 @@ def menu():
     else:
         print("Invalid Input")
         me()
+
 def me():
     print()
     print("🏠 Go back to menu (1): ")
@@ -527,6 +530,7 @@ def verify_user(user_id, password):
     if user and user['password'] == password:
         return True
     return False
+
 def GoBackToProfile():
     print()
     print("⬅️ Go back to Profile (1): ")
@@ -987,4 +991,5 @@ def SearchItems():
 
     finally:
         cursor.close()
+
 menu()
