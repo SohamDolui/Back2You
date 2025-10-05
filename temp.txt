@@ -1,3 +1,1 @@
- - add bounty points to finder's acc
- - add predefined categories
  - add option to delete reports that have been found by user itself
